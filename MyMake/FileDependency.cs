@@ -27,9 +27,8 @@ namespace MyMake
                             var length = text.IndexOf("\"", 1) - 1;
                             var include_file_name = text.Substring(1, length);
                             var include_file = include_file_path.Select(dir => dir.GetFile(include_file_name)).Where(file => file.Exists).FirstOrDefault();
-                            if (include_file == null)
-                                throw new ApplicationException(string.Format("インクルードファイル'{0}'が見つかりません。", include_file_name));
-                            IncludeFiles.Add(include_file);
+                            if (include_file != null)
+                                IncludeFiles.Add(include_file);
                         }
                     }
                 }

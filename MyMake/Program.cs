@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -10,30 +11,30 @@ namespace MyMake
 
         static void Main(string[] args)
         {
-            FileInfo mymakefile =  new DirectoryInfo( Directory.GetCurrentDirectory()).GetFile("mymakefile.xml");
+            var targets = args;
+            var mymakefile = new DirectoryInfo(Directory.GetCurrentDirectory()).GetFile("mymakefile.xml");
+            var mymake = new FileInfo(Assembly.GetExecutingAssembly().Location);
             if (mymakefile.Exists)
-                Open(mymakefile);
+                Open(mymake, mymakefile, targets);
         }
 
-        private static void Open(FileInfo mymakefile)
+        private static void Open(FileInfo mymake, FileInfo mymakefile, string[] targrts)
         {
             var setting = new MyMakeFileSetting(mymakefile);
 
-            OpenMakefile(mymakefile, setting, "x86", "Debug");
-            OpenMakefile(mymakefile, setting, "x86", "Release");
-            OpenMakefile(mymakefile, setting, "x64", "Debug");
-            OpenMakefile(mymakefile, setting, "x64", "Release");
-
-            Console.ReadLine();
+            OpenMakefile(mymake, mymakefile, setting, "x86", "Debug", targrts);
+            OpenMakefile(mymake, mymakefile, setting, "x86", "Release", targrts);
+            OpenMakefile(mymake, mymakefile, setting, "x64", "Debug", targrts);
+            OpenMakefile(mymake, mymakefile, setting, "x64", "Release", targrts);
         }
 
-        private static void OpenMakefile(FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config)
+        private static void OpenMakefile(FileInfo mymake, FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config, string[] targets)
         {
-            var makefile = CreateMakefile(mymakefile, setting, platform, config);
-            ExecuteMake(mymakefile.Directory, makefile, setting, platform);
+            var makefile = CreateMakefile(mymake, mymakefile, setting, platform, config);
+            ExecuteMake(makefile, setting, platform, targets);
         }
 
-        private static FileInfo CreateMakefile(FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config)
+        private static FileInfo CreateMakefile(FileInfo mymake, FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config)
         {
             var base_dir = mymakefile.Directory;
             var target_file = base_dir.Parent.GetDirectory("dist").GetDirectory(string.Format("{0}_{1}", platform, config)).GetFile(setting.TargetFileName);
@@ -41,10 +42,11 @@ namespace MyMake
             var map_file = object_dir.GetFile(Path.GetFileNameWithoutExtension(target_file.Name) + ".map");
             var makefile = base_dir.GetDirectory("myproject").GetFile(string.Format("Makefile.{0}_{1}.mk", platform, config));
 
-            if (makefile.Exists && makefile.LastWriteTimeUtc >= mymakefile.LastWriteTimeUtc)
-                return (makefile);
+            //if (makefile.Exists && makefile.LastWriteTimeUtc >= mymakefile.LastWriteTimeUtc && makefile.LastWriteTimeUtc >= mymake.LastWriteTimeUtc)
+            //    return (makefile);
 
-            var dependencies = base_dir.EnumerateFiles("*.c", SearchOption.AllDirectories)
+            var dependencies = base_dir.EnumerateFiles("*.*", SearchOption.AllDirectories)
+                               .Where(file => new[] { ".c", ".rc" }.Contains(file.Extension.ToLower()))
                                .Select(file => new FileDependency(file, new[] { file.Directory }));
 
             var file_infos = dependencies
@@ -95,22 +97,35 @@ namespace MyMake
                                                    makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
                                                    string.Join("  ", new[] { file_info.source_file }.Concat(file_info.include_files).Concat(new[] { mymakefile }).Select(path => makefile.Directory.GetRelativePath(path).Replace('\\', '/')))));
                     writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(file_info.object_file.Directory).Replace('\\', '/')));
-                    writer.WriteLine(string.Format("\tgcc -c -save-temps=obj -Werror {0} -o {1} {2}",
-                                                   string.Join(" ", setting.Cflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
-                                                   makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
-                                                   makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));
+                    switch (file_info.source_file.Extension.ToLower())
+                    {
+                        case ".c":
+                            writer.WriteLine(string.Format("\tgcc -c -save-temps=obj -Werror {0} -o {1} {2}",
+                                                           string.Join(" ", setting.Cflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
+                                                           makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
+                                                           makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));
+                            break;
+                        case ".rc":
+                            writer.WriteLine(string.Format("\twindres -c 65001 -o {0} {1}",
+                                                           makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
+                                                           makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));
+                            break;
+                        default:
+                            throw new ApplicationException();
+
+                    }
                     writer.WriteLine();
                 }
             }
             return (makefile);
         }
 
-        private static void ExecuteMake(DirectoryInfo base_dir, FileInfo makefile, MyMakeFileSetting setting, string platform)
+        private static void ExecuteMake(FileInfo makefile, MyMakeFileSetting setting, string platform, string[] targets)
         {
             var tool_chain_path = setting.ToolChains[platform];
             var start_info = new ProcessStartInfo();
-            start_info.Arguments = string.Format("-f {0}", makefile);
-            start_info.Environment["PATH"] = string.Format("{0};{1}", tool_chain_path, Environment.GetEnvironmentVariable("PATH"));
+            start_info.Arguments = string.Join(" ", new[] { "-f", makefile.Name }.Concat(targets));
+            start_info.Environment["PATH"] = string.Format("{0};{1}", tool_chain_path, start_info.Environment["PATH"]);
             start_info.FileName = "make.exe";
             start_info.UseShellExecute = false;
             start_info.WorkingDirectory = makefile.Directory.FullName;
