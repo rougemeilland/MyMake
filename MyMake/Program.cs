@@ -86,7 +86,7 @@ namespace MyMake
                 writer.WriteLine();
                 writer.WriteLine(string.Format("{0}: $(OBJS)", makefile.Directory.GetRelativePath(target_file).Replace('\\', '/')));
                 writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(target_file.Directory).Replace('\\', '/')));
-                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} -Wl,-Map={2} -shared",
+                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} -Wl,-Map={2}",
                                                makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
                                                string.Join(" ", setting.Ldflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
                                                makefile.Directory.GetRelativePath(map_file).Replace('\\', '/')));
