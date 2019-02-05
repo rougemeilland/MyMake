@@ -84,7 +84,7 @@ namespace MyMake
 
                 writer.WriteLine("test:");
                 foreach (var commandline in setting.TestCommandlines)
-                    writer.WriteLine(string.Format("\t{0}", commandline));
+                    writer.WriteLine(string.Format("\t{0}", commandline.Replace("{config}", config).Replace("{platform}", platform)));
                 writer.WriteLine();
 
                 writer.WriteLine(string.Format("OBJS = {0}", string.Join(" ", file_infos.Select(file_info => makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/')))));

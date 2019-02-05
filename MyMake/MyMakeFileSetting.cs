@@ -51,11 +51,15 @@ namespace MyMake
                       .ToArray();
 
             var node_test = node_setting.Element("test");
-
-            var node_test_command_lines = node_test.Element("commandlines");
-            TestCommandlines = node_test_command_lines.Elements("commandline")
-                               .Select(node => node.Value)
-                               .ToArray();
+            if (node_test != null)
+            {
+                var node_test_command_lines = node_test.Element("commandlines");
+                TestCommandlines = node_test_command_lines.Elements("commandline")
+                                   .Select(node => node.Value)
+                                   .ToArray();
+            }
+            else
+                TestCommandlines = new string[0];
 
             /*
             var node_test_environment_variables = node_test.Element("environmentvariables");
