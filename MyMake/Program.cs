@@ -82,6 +82,11 @@ namespace MyMake
                                                            .Select(dir => makefile.Directory.GetRelativePath(dir).Replace('\\', '/')))));
                 writer.WriteLine();
 
+                writer.WriteLine("test:");
+                foreach (var commandline in setting.TestCommandlines)
+                    writer.WriteLine(string.Format("\t{0}", commandline));
+                writer.WriteLine();
+
                 writer.WriteLine(string.Format("OBJS = {0}", string.Join(" ", file_infos.Select(file_info => makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/')))));
                 writer.WriteLine();
                 writer.WriteLine(string.Format("{0}: $(OBJS)", makefile.Directory.GetRelativePath(target_file).Replace('\\', '/')));

@@ -49,6 +49,22 @@ namespace MyMake
                       .Select(item => new { item.value, on = item.on != null ? item.on.Value : null })
                       .Select(item => new FlagSetting(item.value, item.on))
                       .ToArray();
+
+            var node_test = node_setting.Element("test");
+
+            var node_test_command_lines = node_test.Element("commandlines");
+            TestCommandlines = node_test_command_lines.Elements("commandline")
+                               .Select(node => node.Value)
+                               .ToArray();
+
+            /*
+            var node_test_environment_variables = node_test.Element("environmentvariables");
+            TestEnvironmentVariables = node_test_environment_variables.Elements("environmentvariable")
+                                       .Select(node => new { node_name = node.Element("name"), node_value = node.Element("value") })
+                                       .Where(item => item.node_name != null && item.node_value != null)
+                                       .Select(item => new { name = item.node_name.Value, value = item.node_value.Value })
+                                       .ToDictionary(item => item.name, item => item.value);
+            */
         }
 
         public IDictionary<string, DirectoryInfo> ToolChains { get; private set; }
@@ -56,5 +72,7 @@ namespace MyMake
         public IEnumerable<Regex> SourceFileFilters { get; private set; }
         public IEnumerable<FlagSetting> Cflags { get; private set; }
         public IEnumerable<FlagSetting> Ldflags { get; private set; }
+        public IEnumerable<string> TestCommandlines { get; private set; }
+        //public IDictionary<string, string> TestEnvironmentVariables { get; private set; }
     }
 }
