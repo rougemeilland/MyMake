@@ -26,6 +26,10 @@ namespace MyMake
             OpenMakefile(mymake, mymakefile, setting, "x86", "Release", targrts);
             OpenMakefile(mymake, mymakefile, setting, "x64", "Debug", targrts);
             OpenMakefile(mymake, mymakefile, setting, "x64", "Release", targrts);
+
+#if DEBUG
+            Console.ReadLine();
+#endif
         }
 
         private static void OpenMakefile(FileInfo mymake, FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config, string[] targets)
@@ -47,7 +51,7 @@ namespace MyMake
 
             var dependencies = base_dir.EnumerateFiles("*.*", SearchOption.AllDirectories)
                                .Where(file => new[] { ".c", ".rc" }.Contains(file.Extension.ToLower()))
-                               .Select(file => new FileDependency(file, new[] { file.Directory }));
+                               .Select(file => new FileDependency(file, setting.IncludeFilePaths.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)));
 
             var file_infos = dependencies
                              .Select(dep => new
@@ -78,7 +82,7 @@ namespace MyMake
                                                            .Concat(file_infos.Select(file_info => file_info.assembly_file))
                                                            .Concat(file_infos.Select(file_info => file_info.i_file))
                                                            .Select(file => file.Directory)
-                                                           .Distinct(new DirectoryInfoComparer())
+                                                           .Distinct(new FileInfoComparer())
                                                            .Select(dir => makefile.Directory.GetRelativePath(dir).Replace('\\', '/')))));
                 writer.WriteLine();
 
@@ -87,14 +91,22 @@ namespace MyMake
                     writer.WriteLine(string.Format("\t{0}", commandline.Replace("{config}", config).Replace("{platform}", platform)));
                 writer.WriteLine();
 
-                writer.WriteLine(string.Format("OBJS = {0}", string.Join(" ", file_infos.Select(file_info => makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/')))));
+                var lib_dirs = setting.LibraryFilePaths.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value);
+
+                writer.WriteLine(string.Format("OBJS = {0}", string.Join(" ", 
+                                                                         file_infos
+                                                                         .Select(file_info => file_info.object_file)
+                                                                         .Concat(setting.AdditionalLibraries.Select(lib => lib_dirs.Select(dir => dir.GetFile(lib)).Where(file=> file.Exists).FirstOrDefault()).Where(file => file != null))
+                                                                         .Select(file => makefile.Directory.GetRelativePath(file).Replace('\\', '/'))
+                                                                         )));
                 writer.WriteLine();
                 writer.WriteLine(string.Format("{0}: $(OBJS)", makefile.Directory.GetRelativePath(target_file).Replace('\\', '/')));
                 writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(target_file.Directory).Replace('\\', '/')));
-                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} -Wl,-Map={2}",
+                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} -Wl,-Map={2} {3}",
                                                makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
                                                string.Join(" ", setting.Ldflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
-                                               makefile.Directory.GetRelativePath(map_file).Replace('\\', '/')));
+                                               makefile.Directory.GetRelativePath(map_file).Replace('\\', '/'),
+                                               string.Join(" ", lib_dirs.Select(dir => string.Format("-L{0}", dir.FullName.Replace('\\', '/'))))));
                 writer.WriteLine();
                 foreach (var file_info in file_infos)
                 {
@@ -105,8 +117,9 @@ namespace MyMake
                     switch (file_info.source_file.Extension.ToLower())
                     {
                         case ".c":
-                            writer.WriteLine(string.Format("\tgcc -c -save-temps=obj -Werror {0} -o {1} {2}",
+                            writer.WriteLine(string.Format("\tgcc -c -save-temps=obj -Werror {0} {1} -o {2} {3}",
                                                            string.Join(" ", setting.Cflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
+                                                           string.Join(" ", setting.IncludeFilePaths.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => string.Format("-I{0}", item.Value.FullName.Replace('\\', '/')))),
                                                            makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
                                                            makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));
                             break;

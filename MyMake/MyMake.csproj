@@ -47,9 +47,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DirectoryInfoComparer.cs" />
+    <Compile Include="FileInfoComparer.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FileDependency.cs" />
+    <Compile Include="DirectoryPathSetting.cs" />
+    <Compile Include="FlagSetting.cs" />
     <Compile Include="MyMakeFileSetting.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

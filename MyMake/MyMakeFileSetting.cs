@@ -6,17 +6,6 @@ using System.Xml.Linq;
 
 namespace MyMake
 {
-    class FlagSetting
-    {
-        public FlagSetting(string value, string on)
-        {
-            Value = value;
-            On = on;
-        }
-        public string Value { get; private set; }
-        public string On { get; private set; }
-    }
-
     class MyMakeFileSetting
     {
         public MyMakeFileSetting(FileInfo mymakefile)
@@ -61,14 +50,24 @@ namespace MyMake
             else
                 TestCommandlines = new string[0];
 
-            /*
-            var node_test_environment_variables = node_test.Element("environmentvariables");
-            TestEnvironmentVariables = node_test_environment_variables.Elements("environmentvariable")
-                                       .Select(node => new { node_name = node.Element("name"), node_value = node.Element("value") })
-                                       .Where(item => item.node_name != null && item.node_value != null)
-                                       .Select(item => new { name = item.node_name.Value, value = item.node_value.Value })
-                                       .ToDictionary(item => item.name, item => item.value);
-            */
+            var node_include_paths = node_setting.Element("includepaths");
+            IncludeFilePaths = node_include_paths.Elements("includepath")
+                               .Select(node => new { value = node.Value, on = node.Attribute("on") })
+                               .Select(item => new { item.value, on = item.on != null ? item.on.Value : null })
+                               .Select(item => new DirectoryPathSetting(new DirectoryInfo(item.value), item.on))
+                               .ToArray();
+
+            var node_library_paths = node_setting.Element("librarypaths");
+            LibraryFilePaths = node_library_paths.Elements("librarypath")
+                               .Select(node => new { value = node.Value, on = node.Attribute("on") })
+                               .Select(item => new { item.value, on = item.on != null ? item.on.Value : null })
+                               .Select(item => new DirectoryPathSetting(new DirectoryInfo(item.value), item.on))
+                               .ToArray();
+
+            var node_additionallibraries = node_setting.Element("additionallibraries");
+            AdditionalLibraries = node_additionallibraries.Elements("additionallibrary")
+                                 .Select(node => node.Value)
+                                 .ToArray();
         }
 
         public IDictionary<string, DirectoryInfo> ToolChains { get; private set; }
@@ -77,6 +76,8 @@ namespace MyMake
         public IEnumerable<FlagSetting> Cflags { get; private set; }
         public IEnumerable<FlagSetting> Ldflags { get; private set; }
         public IEnumerable<string> TestCommandlines { get; private set; }
-        //public IDictionary<string, string> TestEnvironmentVariables { get; private set; }
+        public IEnumerable<DirectoryPathSetting> IncludeFilePaths { get; private set; }
+        public IEnumerable<DirectoryPathSetting> LibraryFilePaths { get; private set; }
+        public IEnumerable<string> AdditionalLibraries { get; private set; }
     }
 }
