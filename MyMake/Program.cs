@@ -42,6 +42,9 @@ namespace MyMake
         {
             var base_dir = mymakefile.Directory;
             var target_file = base_dir.Parent.GetDirectory("dist").GetDirectory(string.Format("{0}_{1}", platform, config)).GetFile(setting.TargetFileName);
+            var module_definition_file = base_dir.GetFile(Path.GetFileNameWithoutExtension(setting.TargetFileName) + ".def");
+            if (!module_definition_file.Exists)
+                module_definition_file = null;
             var object_dir = base_dir.GetDirectory("build").GetDirectory(string.Format("{0}_{1}", platform, config));
             var map_file = object_dir.GetFile(Path.GetFileNameWithoutExtension(target_file.Name) + ".map");
             var makefile = base_dir.GetDirectory("myproject").GetFile(string.Format("Makefile.{0}_{1}.mk", platform, config));
@@ -100,10 +103,13 @@ namespace MyMake
                                                                          .Select(file => makefile.Directory.GetRelativePath(file).Replace('\\', '/'))
                                                                          )));
                 writer.WriteLine();
-                writer.WriteLine(string.Format("{0}: $(OBJS)", makefile.Directory.GetRelativePath(target_file).Replace('\\', '/')));
-                writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(target_file.Directory).Replace('\\', '/')));
-                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} -Wl,-Map={2} {3}",
+                writer.WriteLine(string.Format("{0}: $(OBJS) {1}",
                                                makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
+                                               module_definition_file != null ? makefile.Directory.GetRelativePath(module_definition_file).Replace('\\', '/') : ""));
+                writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(target_file.Directory).Replace('\\', '/')));
+                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} {2} -Wl,-Map={3} {4}",
+                                               makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
+                                               module_definition_file != null ? makefile.Directory.GetRelativePath(module_definition_file).Replace('\\', '/') : "",
                                                string.Join(" ", setting.Ldflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
                                                makefile.Directory.GetRelativePath(map_file).Replace('\\', '/'),
                                                string.Join(" ", lib_dirs.Select(dir => string.Format("-L{0}", dir.FullName.Replace('\\', '/'))))));
