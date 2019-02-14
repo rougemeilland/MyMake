@@ -41,7 +41,7 @@ namespace MyMake
         private static FileInfo CreateMakefile(FileInfo mymake, FileInfo mymakefile, MyMakeFileSetting setting, string platform, string config)
         {
             var base_dir = mymakefile.Directory;
-            var target_file = base_dir.Parent.GetDirectory("dist").GetDirectory(string.Format("{0}_{1}", platform, config)).GetFile(setting.TargetFileName);
+            var target_file = base_dir.Parent.GetDirectory("dist").GetDirectory(config).GetDirectory(platform).GetFile(setting.TargetFileName);
             var module_definition_file = base_dir.GetFile(Path.GetFileNameWithoutExtension(setting.TargetFileName) + ".def");
             if (!module_definition_file.Exists)
                 module_definition_file = null;
