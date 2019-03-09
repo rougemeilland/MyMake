@@ -89,10 +89,13 @@ namespace MyMake
                                                            .Select(dir => makefile.Directory.GetRelativePath(dir).Replace('\\', '/')))));
                 writer.WriteLine();
 
-                writer.WriteLine("test:");
-                foreach (var commandline in setting.TestCommandlines)
-                    writer.WriteLine(string.Format("\t{0}", commandline.Replace("{config}", config).Replace("{platform}", platform)));
-                writer.WriteLine();
+                if (setting.TestCommandlines.Any())
+                {
+                    writer.WriteLine("test:");
+                    foreach (var commandline in setting.TestCommandlines)
+                        writer.WriteLine(string.Format("\t{0}", commandline.Replace("{config}", config).Replace("{platform}", platform)));
+                    writer.WriteLine();
+                }
 
                 var lib_dirs = setting.LibraryFilePaths.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value);
 
@@ -107,7 +110,8 @@ namespace MyMake
                                                makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
                                                module_definition_file != null ? makefile.Directory.GetRelativePath(module_definition_file).Replace('\\', '/') : ""));
                 writer.WriteLine(string.Format("\tmkdir -p {0}", makefile.Directory.GetRelativePath(target_file.Directory).Replace('\\', '/')));
-                writer.WriteLine(string.Format("\tgcc -o {0} $(OBJS) {1} {2} -Wl,-Map={3} {4}",
+                writer.WriteLine(string.Format("\t{0} -o {1} $(OBJS) {2} {3} -Wl,-Map={4} {5}",
+                                               setting.Linker,
                                                makefile.Directory.GetRelativePath(target_file).Replace('\\', '/'),
                                                module_definition_file != null ? makefile.Directory.GetRelativePath(module_definition_file).Replace('\\', '/') : "",
                                                string.Join(" ", setting.Ldflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),

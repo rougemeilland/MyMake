@@ -62,9 +62,14 @@ namespace MyMake
             else
             {
                 var node_test_command_lines = node_test.Element("commandlines");
-                TestCommandlines = node_test_command_lines.Elements("commandline")
-                                   .Select(node => node.Value)
-                                   .ToArray();
+                if (node_test_command_lines == null)
+                    TestCommandlines = new string[0];
+                else
+                {
+                    TestCommandlines = node_test_command_lines.Elements("commandline")
+                                       .Select(node => node.Value)
+                                       .ToArray();
+                }
             }
 
             var node_include_paths = node_setting.Element("includepaths");
@@ -94,6 +99,12 @@ namespace MyMake
                 AdditionalLibraries = node_additionallibraries.Elements("additionallibrary")
                                      .Select(node => node.Value)
                                      .ToArray();
+
+            var node_linker = node_setting.Element("linker");
+            if (node_linker == null)
+                Linker = "gcc";
+            else
+                Linker = node_linker.Value;
         }
 
         public IDictionary<string, DirectoryInfo> ToolChains { get; private set; }
@@ -105,5 +116,6 @@ namespace MyMake
         public IEnumerable<DirectoryPathSetting> IncludeFilePaths { get; private set; }
         public IEnumerable<DirectoryPathSetting> LibraryFilePaths { get; private set; }
         public IEnumerable<string> AdditionalLibraries { get; private set; }
+        public string Linker { get; private set; }
     }
 }
