@@ -134,8 +134,9 @@ namespace MyMake
                                                            makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));
                             break;
                         case ".cpp":
-                            writer.WriteLine(string.Format("\tg++ -c -save-temps=obj -Werror {0} {1} -o {2} {3}",
+                            writer.WriteLine(string.Format("\tg++ -c -save-temps=obj -Werror {0} {1} {2} -o {3} {4}",
                                                            string.Join(" ", setting.Cflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
+                                                           string.Join(" ", setting.Cppflags.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => item.Value)),
                                                            string.Join(" ", setting.IncludeFilePaths.Where(item => new[] { null, platform, config }.Contains(item.On)).Select(item => string.Format("-I{0}", item.Value.FullName.Replace('\\', '/')))),
                                                            makefile.Directory.GetRelativePath(file_info.object_file).Replace('\\', '/'),
                                                            makefile.Directory.GetRelativePath(file_info.source_file).Replace('\\', '/')));

@@ -46,6 +46,16 @@ namespace MyMake
                          .Select(item => new FlagSetting(item.value, item.on))
                          .ToArray();
 
+            var node_cppflags = node_setting.Element("cppflags");
+            if (node_cppflags == null)
+                Cppflags = new FlagSetting[0];
+            else
+                Cppflags = node_cppflags.Elements("cppflag")
+                           .Select(node => new { value = node.Value, on = node.Attribute("on") })
+                           .Select(item => new { item.value, on = item.on != null ? item.on.Value : null })
+                           .Select(item => new FlagSetting(item.value, item.on))
+                           .ToArray();
+
             var node_ldflags = node_setting.Element("ldflags");
             if (node_ldflags == null)
                 Ldflags = new FlagSetting[0];
@@ -111,6 +121,7 @@ namespace MyMake
         public string TargetFileName { get; private set; }
         public IEnumerable<Regex> SourceFileFilters { get; private set; }
         public IEnumerable<FlagSetting> Cflags { get; private set; }
+        public IEnumerable<FlagSetting> Cppflags { get; private set; }
         public IEnumerable<FlagSetting> Ldflags { get; private set; }
         public IEnumerable<string> TestCommandlines { get; private set; }
         public IEnumerable<DirectoryPathSetting> IncludeFilePaths { get; private set; }
